@@ -46,6 +46,7 @@ using namespace std;
 #define MAXLINE 1024
 
 #define NOTIFY_ID_EVERYONETALK_FRIEND_ONLINE_STATE 5000
+#define NOTIFY_ID_EVERYONETALK_MESSAGE_INFOMATION  5001
 
 
 void    Pthread_create(pthread_t *, const pthread_attr_t *, void * (*)(void *), void *);

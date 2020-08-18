@@ -16,13 +16,30 @@ const int MSG_ID_EVERYONETALK_SEND_MSG = 1004;
 
 const int MSG_ID_EVERYONETALK_QUIT = 4999;
 
+struct ctrl_send_client
+{
+    bool is_send_client;
+    int notify_type;
+
+    ctrl_send_client()
+    {
+        is_send_client = false;
+        notify_type = 0;
+    }
+}ctrl_sc;
+
 
 struct user_state_change
 {
-    bool is_change_user_state;
     string user_name;
     user_state state;
 }us_change;
+
+struct send_massage
+{
+    string user_name;
+    string send_msg;
+}s_msg;
 
 pthread_mutex_t    state_mutex;
 pthread_cond_t    state_cond;
@@ -48,6 +65,8 @@ void set_timer();
 void get_friend_list(string strMsg, char *respond);
 int change_user_state(string strMsg);
 void deal_state_notify(string ip, int port, string user_name, user_state state);
+int sendmsg_to_friend(string str_msg);
+void deal_send_msg(string ip, int port, string str_msg);
 
 
 void *thread_main(void*);
@@ -208,11 +227,11 @@ void deal_msg(int connfd, struct sockaddr_in &clisock)
                 }
                 case MSG_ID_EVERYONETALK_SEND_MSG:
                 {
-                    int ret = 0;
+                    syslog(LOG_ERR, "MSG_ID_EVERYONETALK_SEND_MSG strMsgData:%s\n", strMsgData.c_str());
+                    int ret = sendmsg_to_friend(strMsgData);
 
                     char sendline[10];
                     sprintf(sendline, "%d\n", ret);
-                    syslog(LOG_ERR, "MSG_ID_EVERYONETALK_SEND_MSG:%s\n", sendline);
                     if(writen(connfd, sendline, strlen(sendline)) != strlen(sendline))
                     {
                        syslog(LOG_ERR, "Readline writen fail.\n");
@@ -240,40 +259,54 @@ void deal_msg(int connfd, struct sockaddr_in &clisock)
 void notify_client()
 {
     // 检测当下登陆用户有木有状态变更
-    us_change.is_change_user_state = false;
     while (1)
     {
         Pthread_mutex_lock(&state_mutex);
-        while (!us_change.is_change_user_state)
+        while (!ctrl_sc.is_send_client)
         {
-            
             Pthread_cond_wait(&state_cond, &state_mutex);
         }
 
-        us_change.is_change_user_state = false;
+        ctrl_sc.is_send_client = false;
         Pthread_mutex_unlock(&state_mutex);
 
-        // 通知所有好友
-
-        // 根据用户名， 查出所有好友
-        int user_id = get_userid_by_username(us_change.user_name);
-
-        vector<int> userids;
-        get_friendids_by_userid(user_id, userids);
-        // 根据查出的所有好友id，查出所有在线好友
-        vector<tbl_login> t_logins;
-        get_logininfos_by_userid(userids, t_logins);
-        // 连接所有客户端，推送状态好好友
-
-        syslog(LOG_ERR, "deal_state_notify.t_logins.size:%d", t_logins.size());
-        
-        for (int i = 0; i < t_logins.size(); i++)
+        switch (ctrl_sc.notify_type)
         {
-            syslog(LOG_ERR, "AAAA server notify_client. t_logins[i].user_name:%s", t_logins[i].user_name.c_str());
-            deal_state_notify(t_logins[i].ip, t_logins[i].port, us_change.user_name, us_change.state);
+            case NOTIFY_ID_EVERYONETALK_FRIEND_ONLINE_STATE:
+            {
+                // 根据用户名， 查出所有好友
+                int user_id = get_userid_by_username(us_change.user_name);
+
+                vector<int> userids;
+                get_friendids_by_userid(user_id, userids);
+                // 根据查出的所有好友id，查出所有在线好友
+                vector<tbl_login> t_logins;
+                get_logininfos_by_userid(userids, t_logins);
+                // 连接所有客户端，推送状态好好友
+
+                syslog(LOG_ERR, "deal_state_notify.t_logins.size:%d", t_logins.size());
+                
+                for (int i = 0; i < t_logins.size(); i++)
+                {
+                    syslog(LOG_ERR, "AAAA server notify_client. t_logins[i].user_name:%s", t_logins[i].user_name.c_str());
+                    deal_state_notify(t_logins[i].ip, t_logins[i].port, us_change.user_name, us_change.state);
+                }
+                
+                break;
+            }
+            case NOTIFY_ID_EVERYONETALK_MESSAGE_INFOMATION:
+            {
+                string str_ip;
+                int port = 0;
+                get_friend_info(s_msg.user_name, str_ip, port);
+                deal_send_msg(str_ip, port, s_msg.send_msg);
+                
+                break;
+            }
+            
+            default:
+                break;
         }
-        
-        
     }
     
 }
@@ -285,6 +318,15 @@ void deal_state_notify(string ip, int port, string user_name, user_state state)
     syslog(LOG_ERR, "deal_state_notify.request:%s", request);
     deal_notify(ip, port, request);
 }
+
+void deal_send_msg(string ip, int port, string str_msg)
+{
+    char request[MAXLINE] = {0};
+    sprintf(request, "%d;%s\n", NOTIFY_ID_EVERYONETALK_MESSAGE_INFOMATION, str_msg.c_str());
+    syslog(LOG_ERR, "deal_send_msg.request:%s", request);
+    deal_notify(ip, port, request);
+}
+
 
 
 void set_timer()
@@ -462,7 +504,8 @@ int login(string strMsgData, struct sockaddr_in &clisock)
 
         Pthread_mutex_lock(&state_mutex);
         
-        us_change.is_change_user_state = true;
+        ctrl_sc.is_send_client = true;
+        ctrl_sc.notify_type = NOTIFY_ID_EVERYONETALK_FRIEND_ONLINE_STATE;
         us_change.user_name = login_info.user_name;
         us_change.state = t_login.state;
         
@@ -534,7 +577,8 @@ int change_user_state(string strMsg)
 
     Pthread_mutex_lock(&state_mutex);
         
-    us_change.is_change_user_state = true;
+    ctrl_sc.is_send_client = true;
+    ctrl_sc.notify_type = NOTIFY_ID_EVERYONETALK_FRIEND_ONLINE_STATE;
     us_change.user_name = user_name;
     us_change.state = state;
     
@@ -550,10 +594,42 @@ int client_quit(string strMsg)
 
     Pthread_mutex_lock(&state_mutex);
         
-    us_change.is_change_user_state = true;
+    ctrl_sc.is_send_client = true;
+    ctrl_sc.notify_type = NOTIFY_ID_EVERYONETALK_FRIEND_ONLINE_STATE;
     us_change.user_name = strMsg;
     us_change.state = OFFLINE;
     
     Pthread_cond_signal(&state_cond);
     Pthread_mutex_unlock(&state_mutex);
+}
+
+
+void deserialize_user_msg(string strMsg, string &user_name, string &user_msg)
+{
+    int pos = strMsg.find(";");
+    if (pos != string::npos)
+    {
+        user_name = strMsg.substr(0, pos);
+        user_msg = strMsg.substr(pos + 1);
+    }
+}
+
+
+int sendmsg_to_friend(string str_msg)
+{
+    string user_name;
+    string user_msg;
+    deserialize_user_msg(str_msg, user_name, user_msg);
+
+    Pthread_mutex_lock(&state_mutex);
+        
+    ctrl_sc.is_send_client = true;
+    ctrl_sc.notify_type = NOTIFY_ID_EVERYONETALK_MESSAGE_INFOMATION;
+    s_msg.user_name = user_name;
+    s_msg.send_msg = user_msg;
+    
+    Pthread_cond_signal(&state_cond);
+    Pthread_mutex_unlock(&state_mutex);
+
+    return 0;
 }

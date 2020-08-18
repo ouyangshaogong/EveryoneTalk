@@ -407,11 +407,6 @@ bool get_notify_type(char *notify_recv, int &notify_type, string &strNotifyData)
     return false;
 }
 
-void update_online_state()
-{
-    
-}
-
 
 
 void deal_noyify(int connfd)
@@ -447,6 +442,8 @@ void deal_noyify(int connfd)
             }
             case NOTIFY_ID_EVERYONETALK_MESSAGE_INFOMATION:
             {
+                syslog(LOG_ERR, "strNotifyData:%s\n", strNotifyData.c_str());
+                recvmsg_from_server(strNotifyData);
                 break;
             }
             
@@ -770,7 +767,7 @@ void get_talk_cmd(char *c_key)
     }
 }
 
-void deal_talk_cmd(string my_name, bool &is_quit)
+void deal_talk_cmd(string my_name, string f_name, bool &is_quit)
 {
     char c_key[SIZE] = {0};
     get_talk_cmd(c_key);
@@ -781,7 +778,7 @@ void deal_talk_cmd(string my_name, bool &is_quit)
         printf("\033[%dD", strlen(c_key) + 1);
         printf("\033[K"); //清除从光标到行尾的内容
         
-        get_send_msg(my_name);
+        get_send_msg(my_name, f_name);
     }
     else if(!strcmp(c_key, QUERY_FRIEND))
     {
@@ -849,7 +846,7 @@ void deal_talk_data(string my_name, string f_name)
         fill_talk_data();
 
         bool is_quit = false;
-        deal_talk_cmd(my_name, is_quit);
+        deal_talk_cmd(my_name, f_name, is_quit);
 
         if (is_quit)
         {

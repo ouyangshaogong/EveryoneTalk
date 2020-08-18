@@ -51,16 +51,23 @@ void init_talk_lists(string f_name)
     g_current_down_pos = message_lists.size() - 1;
 }
 
-void recvmsg_from_server(string msg)
+void recvmsg_from_server(string str_msg)
 {
-    string str_msg = friend_name + ":" + msg;
+    str_msg = friend_name + ":" + str_msg;
     message_lists.push_back(str_msg);
+
+    //printf("\033[2A");
+    printf("\033[%dD", str_msg.length()); //左移strlen(sendline)
+    printf("\033[K"); //清除从光标到行尾的内容
+
+    talk_lists_down(true);
+    fill_talk_data();
 }
 
-int send_msg_to_server(char *c_msg)
+int send_msg_to_server(char *c_msg, string f_name)
 {
     char request[MAXLINE] = {0};
-    sendmsg_serialize(c_msg, MSG_ID_EVERYONETALK_SEND_MSG, request);
+    sendmsg_serialize(c_msg, MSG_ID_EVERYONETALK_SEND_MSG, f_name, request);
 
     char respond[MAXLINE] = {0};
     int ret = deal_msg(request, respond, MAXLINE);
@@ -88,7 +95,7 @@ void delete_func_key(char *sendline, string strsub)
     strcpy(sendline, send_line.c_str());
 }
 
-void get_send_msg(string my_name)
+void get_send_msg(string my_name, string f_name)
 {
     char sendline[MAXLINE] = {0};
 
@@ -116,7 +123,7 @@ void get_send_msg(string my_name)
             continue;
         }
         
-        send_msg_to_server(sendline);
+        send_msg_to_server(sendline, f_name);
 
         string msg = my_name + ":" + sendline;
         message_lists.push_back(msg);

@@ -19,5 +19,6 @@ void get_logininfo_by_username(string user_name, tbl_login &t_login);
 int update_login_state(       string user_name, user_state state);
 void get_friendstates_by_userid(vector<int> &userids, map<int, user_state> &userid_map_states);
 int update_quit_state(string user_name, user_state state);
+void get_friend_info(string user_name, string &str_ip, int &port);
 
 

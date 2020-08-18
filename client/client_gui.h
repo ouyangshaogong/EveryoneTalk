@@ -28,6 +28,7 @@ void print_talk();
 void deal_noyify(int connfd);
 void print_friend_list();
 void deal_friend_list(string user_name, bool &is_quit);
+void deal_talk_cmd(string my_name, string f_name, bool &is_quit);
 void deal_friend_data(vector<friend_list> &f_lists, string my_name, bool &is_quit);
 void clear_string_surface(int move_up);
 

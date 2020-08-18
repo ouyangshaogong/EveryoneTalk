@@ -72,7 +72,7 @@ void friend_online_state_deserialize(string strNotifyData, string &user_name, us
 }
 
 
-void sendmsg_serialize(char *c_msg, int change_id, char *request)
+void sendmsg_serialize(char *c_msg, int change_id, string f_name, char *request)
 {
-    sprintf(request, "%d;%s\n", change_id, c_msg);
+    sprintf(request, "%d;%s;%s\n", change_id, f_name.c_str(), c_msg);
 }

@@ -132,3 +132,17 @@ int update_quit_state(string user_name, user_state state)
     
     return update_mysql(strSQL);
 }
+
+void get_friend_info(string user_name, string &str_ip, int &port)
+{
+    for (int j = 0; j < g_vecTableLogin.size(); j++)
+    {
+        syslog(LOG_ERR, "g_vecTableLogin[j].user_name:%s\n", g_vecTableLogin[j].user_name.c_str());
+        if (user_name == g_vecTableLogin[j].user_name)
+        {
+            str_ip = g_vecTableLogin[j].ip;
+            port = g_vecTableLogin[j].port;
+            break;
+        }
+    }
+}

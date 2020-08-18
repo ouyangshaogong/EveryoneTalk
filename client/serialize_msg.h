@@ -19,7 +19,7 @@ void friend_list_deserialize(string respond, vector<friend_list> &f_lists);
 void friend_online_state_serialize(int online_state_id, char *pStr);
 void friend_online_state_deserialize(string strNotifyData, string &user_name, user_state &state);
 void serialize_user_state(int change_id, string user_name, user_state state, char *pStr);
-void sendmsg_serialize(char *c_msg, int MSG_ID_EVERYONETALK_SEND_MSG, char *request);
+void sendmsg_serialize(char *c_msg, int change_id, string f_name, char *request);
 void serialize_quit(int change_id, string user_name, char *pStr);
 
 #endif
