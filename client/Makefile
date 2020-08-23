@@ -1,5 +1,5 @@
 CC = g++
-CFLAGS = -g -O2
+CFLAGS = -g
 LIBS = -lpthread
 CLEANFILES = core core.* *.core *.o temp.* *.out typescript* *.lc *.lh *.bsdi *.sparc *.uw
 

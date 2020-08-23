@@ -36,7 +36,6 @@ readline(int fd, void *vptr, size_t maxlen)
 	for (n = 1; n < maxlen; n++) {
 		if ( (rc = my_read(fd, &c)) == 1) {
 			*ptr++ = c;
-            syslog(LOG_ERR, "c:%c\n", c);
 			if (c == '\n')
 				break;	/* newline is stored, like fgets() */
 		} else if (rc == 0) {

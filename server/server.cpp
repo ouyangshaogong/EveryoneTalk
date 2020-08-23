@@ -13,8 +13,7 @@ const int MSG_ID_EVERYONETALK_LOGIN = 1001;
 const int MSG_ID_EVERYONETALK_FRIEND_LIST = 1002;
 const int MSG_ID_EVERYONETALK_CHANGE_USER_STATE = 1003;
 const int MSG_ID_EVERYONETALK_SEND_MSG = 1004;
-
-const int MSG_ID_EVERYONETALK_QUIT = 4999;
+const int MSG_ID_EVERYONETALK_QUIT = 1005;
 
 struct ctrl_send_client
 {
@@ -67,6 +66,7 @@ int change_user_state(string strMsg);
 void deal_state_notify(string ip, int port, string user_name, user_state state);
 int sendmsg_to_friend(string str_msg);
 void deal_send_msg(string ip, int port, string str_msg);
+int client_quit(string strMsg);
 
 
 void *thread_main(void*);
@@ -95,7 +95,7 @@ int main(int argc, char *argv[])
 
     socklen_t addrlen, clilen;
     struct sockaddr_in  servaddr;
-    client_socket *pc_sock;
+    client_socket *pc_sock = NULL;
     pthread_t pid;
     
     openlog(argv[0], LOG_PID, 0);
@@ -129,7 +129,7 @@ int main(int argc, char *argv[])
         pc_sock->connfd = Accept(listenfd, (SA*)&pc_sock->clisock, &clilen);
         Pthread_create(&pid, NULL, &thread_main, (void *)pc_sock);
     }
-
+    
     close_mysql();
 
     return 0;
@@ -138,12 +138,17 @@ int main(int argc, char *argv[])
 
 void *thread_main(void *arg)
 {
+    
     syslog(LOG_ERR, "thread begin %lu starting\n", pthread_self());
-    int connfd;
+    
     client_socket *pc_sock = (client_socket*)arg;
-
+    Pthread_detach(pthread_self());
     deal_msg(pc_sock->connfd, pc_sock->clisock);
+    Close(pc_sock->connfd);
     free(pc_sock);
+    pc_sock = NULL;
+
+    return NULL;
 }
 
 void deal_msg(int connfd, struct sockaddr_in &clisock)
@@ -155,11 +160,11 @@ void deal_msg(int connfd, struct sockaddr_in &clisock)
     {
         if ((nread = Readline(connfd, msg_recv, MAXLINE)) == 0)
         {
-            syslog(LOG_ERR, "Readline socket fail.\n");
+            syslog(LOG_ERR, "deal_msg>>Readline socket fail.\n");
             continue;
         }
 
-        syslog(LOG_ERR, "Readline:%s.\n", msg_recv);
+        syslog(LOG_ERR, "server::deal_msg>>Readline:%s.\n", msg_recv);
         
         int msg_type = 0;
         string strMsgData;
@@ -243,7 +248,8 @@ void deal_msg(int connfd, struct sockaddr_in &clisock)
                 {
                     syslog(LOG_ERR, "client quit, so server also quit.\n");
                     // 通知这个用户的好友，这个用户下线了
-                    
+                    client_quit(strMsgData);
+                    syslog(LOG_ERR, "client quit, so server also quit.end\n");
                     return ;
                 }
                 
@@ -270,6 +276,7 @@ void notify_client()
         ctrl_sc.is_send_client = false;
         Pthread_mutex_unlock(&state_mutex);
 
+        syslog(LOG_ERR, "ctrl_sc.notify_type:%d", ctrl_sc.notify_type);
         switch (ctrl_sc.notify_type)
         {
             case NOTIFY_ID_EVERYONETALK_FRIEND_ONLINE_STATE:
@@ -590,6 +597,11 @@ int change_user_state(string strMsg)
 
 int client_quit(string strMsg)
 {
+    if (strMsg == "none")
+    {
+        return 0;
+    }
+    
     int ret = update_quit_state(strMsg, OFFLINE);
 
     Pthread_mutex_lock(&state_mutex);
@@ -601,6 +613,8 @@ int client_quit(string strMsg)
     
     Pthread_cond_signal(&state_cond);
     Pthread_mutex_unlock(&state_mutex);
+
+    return ret;
 }
 
 

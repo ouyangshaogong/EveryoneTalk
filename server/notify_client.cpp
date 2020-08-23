@@ -12,7 +12,7 @@ int client_connect(string ip_address, int port)
     Inet_pton(AF_INET, ip_address.c_str(), &servaddr.sin_addr);
 
     Connect(sockfd, (SA *) &servaddr, sizeof(servaddr));
-
+    syslog(LOG_ERR, "server BBBBBBBBBBBBBBBB Connect");
     return sockfd;
 }
 

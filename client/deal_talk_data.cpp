@@ -12,6 +12,9 @@ static string friend_name;
 static int g_current_up_pos = 0;
 static int g_current_down_pos = 0;
 static int g_current_pos = 0;
+
+extern int g_interface_talk;
+
 void test_init()
 {
     for(int i = 0; i < 6; i++)
@@ -61,7 +64,11 @@ void recvmsg_from_server(string str_msg)
     printf("\033[K"); //清除从光标到行尾的内容
 
     talk_lists_down(true);
-    fill_talk_data();
+
+    if (g_interface_talk)
+    {
+        fill_talk_data();
+    }
 }
 
 int send_msg_to_server(char *c_msg, string f_name)
@@ -140,6 +147,13 @@ void get_send_msg(string my_name, string f_name)
 
 void fill_talk_data()
 {
+    //填充friend name
+    printf("\033[13A");
+    printf("\033[16C");
+    printf("%s", friend_name.c_str());
+    printf("\033[%dD", 16 + friend_name.length());
+    printf("\033[13B");
+    
     printf("\033[11A");
 
     for (int i = 0; i < TALK_SPACE_SIZE; i++)

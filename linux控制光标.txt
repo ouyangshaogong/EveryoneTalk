@@ -725,3 +725,78 @@ string login_time;
             break;
         }
     }
+    
+    
+    
+/*friend_list f_list[11];
+
+    f_list[0].id = 1;
+    f_list[0].user_name = "James";
+    f_list[0].state = ONLINE;
+
+    f_list[1].id = 2;
+    f_list[1].user_name = "Christian";
+    f_list[1].state = ONLINE;
+
+    f_list[2].id = 3;
+    f_list[2].user_name = "Bob";
+    f_list[2].state = ONLINE;
+
+    f_list[3].id = 4;
+    f_list[3].user_name = "Bob1";
+    f_list[3].state = ONLINE;
+
+    f_list[4].id = 5;
+    f_list[4].user_name = "Bob2";
+    f_list[4].state = ONLINE;
+
+    f_list[5].id = 6;
+    f_list[5].user_name = "Bob3";
+    f_list[5].state = ONLINE;
+
+    f_list[6].id = 7;
+    f_list[6].user_name = "Bob4";
+    f_list[6].state = ONLINE;
+
+    f_list[7].id = 8;
+    f_list[7].user_name = "Bob5";
+    f_list[7].state = ONLINE;
+
+    f_list[8].id = 9;
+    f_list[8].user_name = "Bob6";
+    f_list[8].state = ONLINE;
+
+    f_list[9].id = 10;
+    f_list[9].user_name = "Bob7";
+    f_list[9].state = ONLINE;
+
+    f_list[10].id = 11;
+    f_list[10].user_name = "Bob8";
+    f_list[10].state = ONLINE;
+
+    f_lists.push_back(f_list[0]);
+    f_lists.push_back(f_list[1]);
+    f_lists.push_back(f_list[2]);
+    f_lists.push_back(f_list[3]);
+    f_lists.push_back(f_list[4]);
+    f_lists.push_back(f_list[5]);
+    f_lists.push_back(f_list[6]);
+    f_lists.push_back(f_list[7]);
+    f_lists.push_back(f_list[8]);
+    f_lists.push_back(f_list[9]);
+    f_lists.push_back(f_list[10]);*/
+    
+    
+    
+    /* while(1) 
+    {
+        Pthread_mutex_lock(&clifd_mutex);
+
+        while (!g_friend_state)
+        {
+            Pthread_cond_wait(&clifd_cond, &clifd_mutex);
+            syslog(LOG_ERR, "Pthread_cond_wait end.g_friend_state:%d\n", g_friend_state);
+        }
+
+        Pthread_mutex_unlock(&clifd_mutex);
+    }*/

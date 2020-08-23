@@ -55,15 +55,20 @@ void IniReadValue(char* section, char* key, char* val, const char* file)
                             break;
                         }
                     }
-                    if(i >= lineContentLen) break;
-                    strncpy(val, lineContent + position, strlen(lineContent + position));
+                    
+                    if(i >= lineContentLen) 
+                        break;
+
+                    int val_length = strlen(lineContent + position);
+                    strncpy(val, lineContent + position, val_length);
                     lineContentLen = strlen(val);
                     for(i = 0; i < lineContentLen; i++)
                     {
-                        if((lineContent[i] == '\0') || (lineContent[i] == '\r') || (lineContent[i] == '\n'))
+                        if((val[i] == '\0') || (val[i] == '\r') || (val[i] == '\n'))
                         {
+                            syslog(LOG_ERR, "val:%s, i:%d, lineContentLen:%d\n", val, i, lineContentLen);
                             val[i] = '\0';
-                            break;
+                            goto end;
                         }
                     }  
                 }
@@ -75,6 +80,8 @@ void IniReadValue(char* section, char* key, char* val, const char* file)
             break;
         }
     }
+
+end:
     if(!bFoundSection){syslog(LOG_ERR, "No section = %s\n", section);}
     else if(!bFoundKey){syslog(LOG_ERR, "No key = %s\n", key);}
     fclose(fp);
@@ -202,34 +209,40 @@ int writeIntValue(const char* section, char* key, int val, const char* file)
     return writeStringVlaue(section, key, strValue, file);
 }
 
-void read_client_data(int &val_instance, int &val_port)
+void read_client_data(string &str_c_ip, int &val_c_port, string &str_s_ip, int &val_s_port)
 {
     char file[] = "config.ini";
     char section[] = "section";
-    char c_instance[] = "instance";
-    int t_instance = readIntValue(section, c_instance, file);
+    char c_ip[] = "c_ip";
+    char val_c_ip[MAXLINE] = {0};
+    readStringValue(section, c_ip, val_c_ip, file);
 
-    char *c_port = "port";
-    int t_port = readIntValue(section, c_port, file);
-    syslog(LOG_ERR, "val_instance:%d, val_port:%d\n", val_instance, val_port);
-    
-    val_instance = t_instance;
-    val_port = t_port;
-    
-    t_instance++;
-    t_port++;
+    char c_port[10] = "c_port";
+    int tc_port = readIntValue(section, c_port, file);
 
-    writeIntValue(section, c_instance, t_instance, file);
-    writeIntValue(section, c_port, t_port, file);
+    char s_ip[] = "s_ip";
+    char val_s_ip[MAXLINE] = {0};
+    readStringValue(section, s_ip, val_s_ip, file);
+
+    char s_port[10] = "s_port";
+    int ts_port = readIntValue(section, s_port, file);
+    
+    str_c_ip = val_c_ip;
+    val_c_port = tc_port;
+
+    str_s_ip = val_s_ip;
+    val_s_port = ts_port;
+    
+    tc_port++;
+
+    writeIntValue(section, c_port, tc_port, file);
 }
 
-void restore_client_data(int val_instance, int val_port)
+void restore_client_data(int val_port)
 {
     char file[] = "config.ini";
     char section[] = "section";
-    char c_instance[] = "instance";
     char c_port[] = "c_port";
 
-    writeIntValue(section, c_instance, val_instance, file);
     writeIntValue(section, c_port, val_port, file);
 }

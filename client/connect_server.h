@@ -14,7 +14,7 @@
 
 using namespace std;
 
-int client_connect(string ip_address);
+int client_connect(string ip_address, int port);
 int deal_msg(char *pMsg, char *pRet, int nlength);
 
 #endif

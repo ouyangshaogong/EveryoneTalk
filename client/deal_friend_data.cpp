@@ -10,6 +10,8 @@ static int g_current_down_pos = 0;
 
 map<string, user_state> g_keyMapState;
 
+extern int g_interface_friend;
+
 void init_friend_lists(vector<friend_list> &f_lists)
 {
     int length = MIN(FRIEND_SPACE_SIZE, f_lists.size());
@@ -35,6 +37,11 @@ void modify_friend_state(string user_name, user_state state)
             print_f_lists[i].state = state;
             break;
         }
+    }
+
+    if (g_interface_friend)
+    {
+        fill_friend_data();
     }
 }
 

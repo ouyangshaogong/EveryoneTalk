@@ -4,8 +4,10 @@
 #include "deal_talk_data.h"
 #include "read_config.h"
 
+int g_interface_friend = 0;
+int g_interface_talk = 0;
+
 int g_sockfd = 0;
-int g_port = 0;
 
 int    clifd[MAXNCLI], iget, iput;
 pthread_mutex_t    clifd_mutex;
@@ -24,7 +26,12 @@ char pname[MAXLINE];
 
 #define ECHOFLAGS (ECHO | ECHOE | ECHOK | ECHONL)
 
-#define IP_ADDRESS "127.0.0.1"
+string s_ip;
+int s_port = 0;
+string c_ip;
+int c_port = 0;
+
+
 //分配内存的大小
 #define     SIZE    10
 //定义按键们的宏
@@ -105,6 +112,8 @@ void deal_main_cmd(bool &is_quit)
     else if (!strcmp(c_cmd, "quit"))
     {
         is_quit = true;
+        string user_name = "none";
+        quit_from_server(user_name);
     }
     else
     {
@@ -153,12 +162,18 @@ void get_main_cmd(char *c_cmd)
     }
 }
 
+static void
+sig_int(int signo)
+{
+    syslog(LOG_ERR, "sig_int:%d");
+}
+
 
 int main(int argc, char *argv[])
 {
-    int val_instance = 0;
-    
-    read_client_data(val_instance, g_port);
+    read_client_data(c_ip, c_port, s_ip, s_port);
+    syslog(LOG_ERR, "c_ip:%s, c_port:%d", c_ip.c_str(), c_port);
+    syslog(LOG_ERR, "s_ip:%s, s_port:%d", s_ip.c_str(), s_port);
     
     strcpy(pname, argv[0]);
     
@@ -168,9 +183,12 @@ int main(int argc, char *argv[])
 
     pthread_make(0);
 
-    if (client_connect("127.0.0.1"))
+    if (signal(SIGINT, sig_int) == SIG_ERR)
+        syslog(LOG_ERR, "signal(SIGINT) error");
+
+    if (client_connect(s_ip.c_str(), s_port))
     {
-        restore_client_data(val_instance, g_port);
+        restore_client_data(c_port);
         printf("client_connect fail.\n");
         return -1;
     }
@@ -185,11 +203,13 @@ int main(int argc, char *argv[])
         {
             break;
         }
+
+        clear_string_surface(9);
     }
     
     Close(g_sockfd);
 
-    restore_client_data(val_instance, g_port);
+    restore_client_data(c_port);
     return 0;
 }
 
@@ -308,12 +328,12 @@ void deal_login_data(bool &is_quit)
     printf("\033[1B");  //下移1位
     printf("\033[14C"); //右移14位
     get_login_data(login_info.passwd);
+    printf("\n\n\n");  //下移3位
 
-    login_info.ip = IP_ADDRESS;
-    login_info.port = g_port;
+    login_info.ip = c_ip;
+    login_info.port = c_port;
     int ret = login(login_info);
-
-    printf("\n\n\n");  //下移2位
+    
     if (ret == 0) 
     {
         printf("login successful.\n");
@@ -370,7 +390,7 @@ void *thread_main(void *arg)
     bzero(&servaddr, sizeof(servaddr));
     servaddr.sin_family      = AF_INET;
     servaddr.sin_addr.s_addr = htonl(INADDR_ANY);
-    servaddr.sin_port        = htons(g_port);
+    servaddr.sin_port        = htons(c_port);
 
     Bind(listenfd, (SA *) &servaddr, sizeof(servaddr));
 
@@ -385,6 +405,7 @@ void *thread_main(void *arg)
         deal_noyify(connfd);
 
         Close(connfd);
+        //free(cliaddr);
     }
 }
 
@@ -436,8 +457,7 @@ void deal_noyify(int connfd)
                 friend_online_state_deserialize(strNotifyData, user_name, state);
                 syslog(LOG_ERR, "user_name:%s, state:%d\n", user_name.c_str(), state);
                 modify_friend_state(user_name, state);
-                fill_friend_data();
-                
+
                 break;
             }
             case NOTIFY_ID_EVERYONETALK_MESSAGE_INFOMATION:
@@ -571,9 +591,11 @@ void deal_friend_list_cmd(vector<friend_list> &f_lists, string my_name, bool &is
         {
             // 清空注册界面
             clear_string_surface(17);
-            
+            g_interface_friend = 0;
+            g_interface_talk = 1;
             deal_talk_data(my_name, f_name);
-
+            g_interface_talk = 0;
+            g_interface_friend = 1;
             print_friend_list();
         }
     }
@@ -605,64 +627,8 @@ void deal_friend_list(string user_name, bool &is_quit)
     
     vector<friend_list> f_lists;
     pf_lists = &f_lists;
-    /*friend_list f_list[11];
-
-    f_list[0].id = 1;
-    f_list[0].user_name = "James";
-    f_list[0].state = ONLINE;
-
-    f_list[1].id = 2;
-    f_list[1].user_name = "Christian";
-    f_list[1].state = ONLINE;
-
-    f_list[2].id = 3;
-    f_list[2].user_name = "Bob";
-    f_list[2].state = ONLINE;
-
-    f_list[3].id = 4;
-    f_list[3].user_name = "Bob1";
-    f_list[3].state = ONLINE;
-
-    f_list[4].id = 5;
-    f_list[4].user_name = "Bob2";
-    f_list[4].state = ONLINE;
-
-    f_list[5].id = 6;
-    f_list[5].user_name = "Bob3";
-    f_list[5].state = ONLINE;
-
-    f_list[6].id = 7;
-    f_list[6].user_name = "Bob4";
-    f_list[6].state = ONLINE;
-
-    f_list[7].id = 8;
-    f_list[7].user_name = "Bob5";
-    f_list[7].state = ONLINE;
-
-    f_list[8].id = 9;
-    f_list[8].user_name = "Bob6";
-    f_list[8].state = ONLINE;
-
-    f_list[9].id = 10;
-    f_list[9].user_name = "Bob7";
-    f_list[9].state = ONLINE;
-
-    f_list[10].id = 11;
-    f_list[10].user_name = "Bob8";
-    f_list[10].state = ONLINE;
-
-    f_lists.push_back(f_list[0]);
-    f_lists.push_back(f_list[1]);
-    f_lists.push_back(f_list[2]);
-    f_lists.push_back(f_list[3]);
-    f_lists.push_back(f_list[4]);
-    f_lists.push_back(f_list[5]);
-    f_lists.push_back(f_list[6]);
-    f_lists.push_back(f_list[7]);
-    f_lists.push_back(f_list[8]);
-    f_lists.push_back(f_list[9]);
-    f_lists.push_back(f_list[10]);*/
-
+    
+    g_interface_friend = 1;
     if (get_friend_list(user_name, f_lists))
     {
         printf("get_friend_list fail.\n");
@@ -670,19 +636,8 @@ void deal_friend_list(string user_name, bool &is_quit)
     }
 
     deal_friend_data(f_lists, user_name, is_quit);
-   /* while(1) 
-    {
-        Pthread_mutex_lock(&clifd_mutex);
-
-        while (!g_friend_state)
-        {
-            Pthread_cond_wait(&clifd_cond, &clifd_mutex);
-            syslog(LOG_ERR, "Pthread_cond_wait end.g_friend_state:%d\n", g_friend_state);
-        }
-
-        Pthread_mutex_unlock(&clifd_mutex);
-    }*/
-
+   
+    g_interface_friend = 0;
     // 清空注册界面
     clear_string_surface(16);
 }
@@ -690,22 +645,22 @@ void deal_friend_list(string user_name, bool &is_quit)
 
 void print_friend_list()
 {
-    printf("+--------+--------------+---------+----------+\n");
-    printf("|         EveryoneTalk            |  Modify  |\n");
-    printf("+--------+--------------+---------|  State   |\n");
-    printf("|  ID    |  UserName    |  State  |----------+\n");
-    printf("+--------+--------------+---------|  Query   |\n");
-    printf("|        |              |         |Infomation|\n");
-    printf("|        |              |         |----------+\n");
-    printf("|        |              |         |  Show    |\n");
-    printf("|        |              |         |  Friend  |\n");
-    printf("|        |              |         |----------+\n");
-    printf("|        |              |         |  Switch  |\n");
-    printf("|        |              |         |  Account |\n");
-    printf("|        |              |         |----------+\n");
-    printf("|        |              |         |  Quit    |\n");
-    printf("|        |              |         |          |\n");
-    printf("+--------+--------------+---------+----------+\n");
+    printf("+--------+--------------+---------+\n");
+    printf("|         EveryoneTalk            |\n");
+    printf("+--------+--------------+---------|\n");
+    printf("|  ID    |  UserName    |  State  |\n");
+    printf("+--------+--------------+---------|\n");
+    printf("|        |              |         |\n");
+    printf("|        |              |         |\n");
+    printf("|        |              |         |\n");
+    printf("|        |              |         |\n");
+    printf("|        |              |         |\n");
+    printf("|        |              |         |\n");
+    printf("|        |              |         |\n");
+    printf("|        |              |         |\n");
+    printf("|        |              |         |\n");
+    printf("|        |              |         |\n");
+    printf("+--------+--------------+---------+\n");
 }
 
 void get_talk_cmd(char *c_key)
@@ -859,20 +814,20 @@ void deal_talk_data(string my_name, string f_name)
 
 void print_talk()
 {
-    printf("+------+------------+----------------+---------- +\n");
-    printf("|            name                    |           |\n");
-    printf("+------------------------------------| name info |\n");
-    printf("|                                    |           |\n");
-    printf("|                                    |-----------+\n");
-    printf("|                                    |           |\n");
-    printf("|                                    |   Show    |\n");
-    printf("|                                    |  Message  |\n");
-    printf("|                                    |           |\n");
-    printf("|                                    +-----------|\n");
-    printf("|                                    |           |\n");
-    printf("|                                    |   Quit    |\n");
-    printf("|                                    |           |\n");
-    printf("+------------------------------------+-----------+\n");
+    printf("+------+------------+----------------+\n");
+    printf("|                                    |\n");
+    printf("+------------------------------------|\n");
+    printf("|                                    |\n");
+    printf("|                                    |\n");
+    printf("|                                    |\n");
+    printf("|                                    |\n");
+    printf("|                                    |\n");
+    printf("|                                    |\n");
+    printf("|                                    |\n");
+    printf("|                                    |\n");
+    printf("|                                    |\n");
+    printf("|                                    |\n");
+    printf("+------------------------------------+\n");
 }
 
 
